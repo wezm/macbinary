@@ -1,9 +1,17 @@
 [package]
 name = "macbinary"
-version = "0.1.0"
+version = "0.1.0-alpha"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "MacBinary and resource fork parser"
+keywords = ["macos", "retro", "computing"]
+# categories = ["command-line-utilities", "web-programming"]
+
+homepage = "https://github.com/wezm/rsspls"
+repository = "https://github.com/wezm/rsspls.git"
+
+readme = "README.md"
+license = "Apache-2.0"
 
 [dependencies]
 crc = "3.0.1"
