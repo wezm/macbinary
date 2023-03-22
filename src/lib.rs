@@ -27,6 +27,8 @@ mod macroman;
 mod resource;
 #[cfg(test)]
 mod test;
+#[cfg(target_family = "wasm")]
+mod wasm;
 
 const MBIN_SIG: u32 = u32::from_be_bytes(*b"mBIN");
 
