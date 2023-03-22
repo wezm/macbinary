@@ -1,6 +1,6 @@
 //! Routines for parsing and reading structured data from resource forks
 //!
-//! Reference:
+//! ### Reference:
 //!
 //! [Inside Macintosh: More Macintosh Toolbox](https://archive.org/details/inside-macintosh-1992-1994/1993-more_macintosh_toolbox/)
 //! Resource File Format 1-121 (pp. 151)
@@ -13,7 +13,8 @@ use crate::error::ParseError;
 use crate::macroman::FromMacRoman;
 use crate::FourCC;
 
-struct ResourceFork<'a> {
+/// A parsed resource fork.
+pub struct ResourceFork<'a> {
     rsrc_data: &'a [u8],
     map: ResourceMap<'a>,
 }
@@ -51,7 +52,8 @@ struct ReferenceListItem {
     data_offset: u32, // actually only 3 bytes
 }
 
-struct Resource<'a> {
+/// An individual resource from a resource fork.
+pub struct Resource<'a> {
     name: Option<&'a [u8]>,
     attributes: u8,
     data: &'a [u8],
@@ -229,7 +231,7 @@ mod tests {
     fn test_macbinary_3() {
         let data = read_fixture("tests/Text File.bin");
         let file = crate::parse(&data).unwrap();
-        let rsrc = ResourceFork::new(file.resource_fork()).unwrap();
+        let rsrc = ResourceFork::new(file.resource_fork_raw()).unwrap();
         let bbst = rsrc
             .get_resource(FourCC(u32::from_be_bytes(*b"BBST")), 128)
             .unwrap();

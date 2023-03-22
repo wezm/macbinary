@@ -1,12 +1,12 @@
 //! MacBinary Parser
 //!
-//! Specifications:
+//! ### Specifications:
 //!
 //! - [MacBinary I](https://web.archive.org/web/20050307030202/http://www.lazerware.com/formats/macbinary/macbinary.html)
 //! - [MacBinary II](https://web.archive.org/web/20050305042909/http://www.lazerware.com/formats/macbinary/macbinary_ii.html)
 //! - [MacBinary III](https://web.archive.org/web/20050305044255/http://www.lazerware.com/formats/macbinary/macbinary_iii.html)
 //!
-//! Other references:
+//! #### Other references:
 //!
 //! - [Detecting MacBinary format](https://entropymine.wordpress.com/2019/02/13/detecting-macbinary-format/)
 
@@ -19,17 +19,19 @@ use crc::{Crc, CRC_16_XMODEM};
 
 use crate::binary::read::{ReadBinary, ReadBinaryDep, ReadCtxt, ReadFrom, ReadScope};
 use crate::binary::{NumFrom, U32Be};
-use crate::error::ParseError;
 use crate::macroman::FromMacRoman;
 
 pub(crate) mod binary;
-pub mod error;
+pub(crate) mod error;
 mod macroman;
 mod resource;
 #[cfg(test)]
 mod test;
 
 const MBIN_SIG: u32 = u32::from_be_bytes(*b"mBIN");
+
+pub use crate::error::ParseError;
+pub use crate::resource::ResourceFork;
 
 /// A four-character code
 ///
@@ -84,6 +86,7 @@ struct Header<'a> {
     crc: u16,
 }
 
+/// MacBinary version.
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
 pub enum Version {
     I = 1,
@@ -91,7 +94,7 @@ pub enum Version {
     III = 3,
 }
 
-/// Determine if the supplied data looks like MacBinary data
+/// Determine if the supplied data looks like MacBinary data.
 pub fn detect(data: &[u8]) -> Option<Version> {
     // All MacBinary files start with a 128-byte header and the first byte is zero
     (data.len() >= 128 && data[0] == 0).then_some(())?;
@@ -129,6 +132,7 @@ pub fn detect(data: &[u8]) -> Option<Version> {
     }
 }
 
+/// Parse a MacBinary encoded file.
 pub fn parse(data: &[u8]) -> Result<MacBinary<'_>, ParseError> {
     let Some(version) = detect(data) else {
         return Err(ParseError::BadVersion) // FIXME: Better error type
@@ -316,8 +320,13 @@ impl MacBinary<'_> {
     }
 
     /// Resource fork data
-    pub fn resource_fork(&self) -> &[u8] {
+    pub fn resource_fork_raw(&self) -> &[u8] {
         self.rsrc_fork
+    }
+
+    /// Parsed resource fork
+    pub fn resource_fork(&self) -> Result<ResourceFork<'_>, ParseError> {
+        ResourceFork::new(self.rsrc_fork)
     }
 }
 
@@ -413,6 +422,6 @@ mod tests {
         assert_eq!(file.file_type(), FourCC(u32::from_be_bytes(*b"TEXT")));
         assert_eq!(file.file_creator(), FourCC(u32::from_be_bytes(*b"R*ch"))); // BBEdit
         assert_eq!(file.data_fork(), b"This is a test file.\r");
-        assert_eq!(file.resource_fork().len(), 1454);
+        assert_eq!(file.resource_fork_raw().len(), 1454);
     }
 }
