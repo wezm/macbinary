@@ -261,6 +261,10 @@ impl ReadFrom for ReferenceListItem {
 }
 
 impl Resource<'_> {
+    pub fn id(&self) -> i16 {
+        self.id
+    }
+
     pub fn name(&self) -> Option<String> {
         self.name.map(|name| String::from_macroman(name))
     }
@@ -370,7 +374,7 @@ mod tests {
     fn test_iter_resources() {
         let data = read_fixture("tests/Text File.bin");
         let file = crate::parse(&data).unwrap();
-        let rsrc = ResourceFork::new(file.resource_fork_raw()).unwrap();
+        let rsrc = file.resource_fork().unwrap();
         let mut resources = Vec::new();
         for item in rsrc.resource_types() {
             resources.extend(rsrc.resources(item).map(|resource| {
