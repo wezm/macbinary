@@ -1,5 +1,4 @@
 <h1 align="center">
-  <img src="feed-icon.svg" width="48" alt=""><br>
   MacBinary for Rust
 </h1>
 
@@ -9,20 +8,41 @@
 
 <br>
 
-<!--
 <div align="center">
-  <a href="https://cirrus-ci.com/github/wezm/rsspls">
-    <img src="https://api.cirrus-ci.com/github/wezm/rsspls.svg" alt="Build Status"></a>
-  <a href="https://crates.io/crates/rsspls">
-    <img src="https://img.shields.io/crates/v/rsspls.svg" alt="Version">
+  <a href="https://cirrus-ci.com/github/wezm/macbinary">
+    <img src="https://api.cirrus-ci.com/github/wezm/macbinary.svg" alt="Build Status"></a>
+  <a href="https://crates.io/crates/macbinary">
+    <img src="https://img.shields.io/crates/v/macbinary.svg" alt="Version">
   </a>
-  <img src="https://img.shields.io/crates/l/rsspls.svg" alt="License">
+  <img src="https://img.shields.io/crates/l/macbinary.svg" alt="License">
 </div>
--->
 
 <br>
 
-This crate can parse Macbinary I, II, and III files. It also provides functionality for
-extracting individual resources from resource fork data as well <!-- as well as iterating
-over all resources -->.
+Features
+--------
 
+* Parse Macbinary I, II, and III files
+* Extract individual resources by type and id from resource fork data
+* Iterate over all resources in resource fork
+* Cross-platform (does not rely on a Mac host)
+* Includes WebAssembly bindings. Used by my [online MacBinary parser][7bit-macbinary].
+* Supports `no_std` environments
+* All parsing is done without heap allocation
+
+Building for WebAssembly
+------------------------
+
+There is a `Makefile` that automates building for WebAssembly, it requires you have
+`wasm-bindgen` installed. Run `make` (or `gmake` on BSD) to build the artefacts.
+The output is put into a `wasm` directory.
+
+License & Credits
+-----------------
+
+Licensed under Apache License, Version 2.0 ([LICENSE](LICENSE)). The codebase incorporates
+binary parsing code from [Allsorts](https://github.com/yeslogic/allsorts) and the
+`NumFrom` trait from [ttf-parser].
+
+[7bit-macbinary]: https://7bit.org/macbinary/
+[ttf-parser]: https://github.com/RazrFalcon/ttf-parser/blob/eb6823889302cc55d40ae09c583c5f51324bdf44/src/parser.rs#L160
