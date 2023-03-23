@@ -1,6 +1,6 @@
 [package]
 name = "macbinary"
-version = "0.1.0-alpha"
+version = "0.1.0"
 edition = "2021"
 
 description = "MacBinary and resource fork parser"
