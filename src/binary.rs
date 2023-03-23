@@ -62,7 +62,7 @@ impl NumFrom<u32> for usize {
 mod size {
     //! Definitions of the sizes of binary types.
 
-    use std::mem;
+    use core::mem;
 
     pub const U8: usize = mem::size_of::<u8>();
     pub const I8: usize = mem::size_of::<i8>();

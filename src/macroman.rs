@@ -1,3 +1,14 @@
+#[cfg(feature = "no_std")]
+use heapless::String;
+
+#[cfg(feature = "no_std")]
+pub trait FromMacRoman {
+    fn try_from_macroman(data: &[u8]) -> Option<Self>
+    where
+        Self: Sized;
+}
+
+#[cfg(not(feature = "no_std"))]
 pub trait FromMacRoman {
     fn from_macroman(data: &[u8]) -> Self;
 }
@@ -126,10 +137,23 @@ pub fn macroman_to_char(macroman: u8) -> Option<char> {
     }
 }
 
+#[cfg(not(feature = "no_std"))]
 impl FromMacRoman for String {
     fn from_macroman(data: &[u8]) -> Self {
         data.iter()
             .map(|c| macroman_to_char(*c).unwrap_or('\u{FFFD}'))
             .collect()
+    }
+}
+
+#[cfg(feature = "no_std")]
+impl<const N: usize> FromMacRoman for String<N> {
+    fn try_from_macroman(bytes: &[u8]) -> Option<String<N>> {
+        let mut name: String<N> = String::new();
+        for byte in bytes {
+            name.push(macroman_to_char(*byte).unwrap_or('\u{FFFD}'))
+                .ok()?;
+        }
+        Some(name)
     }
 }

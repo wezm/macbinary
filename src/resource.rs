@@ -7,6 +7,9 @@
 
 // Re: compressed resources: <http://preserve.mactech.com/articles/mactech/Vol.09/09.01/ResCompression/index.html>
 
+#[cfg(feature = "no_std")]
+use heapless::String;
+
 use crate::binary::read::{
     CheckIndex, ReadArray, ReadBinary, ReadBinaryDep, ReadCtxt, ReadFrom, ReadScope,
 };
@@ -265,8 +268,25 @@ impl Resource<'_> {
         self.id
     }
 
+    #[cfg(not(feature = "no_std"))]
     pub fn name(&self) -> Option<String> {
         self.name.map(|name| String::from_macroman(name))
+    }
+
+    /// The name associated with this resource, if present.
+    ///
+    /// The raw name can't be longer than 255 bytes as the length is specified with a byte. However,
+    /// this method converts the raw bytes from MacRoman into UTF-8 string and many non-ASCII
+    /// MacRoman bytes encode to more than one byte in UTF-8. This method will return `None` if
+    /// the `N` parameter is too small to hold the UTF-8 string.
+    #[cfg(feature = "no_std")]
+    pub fn name<const N: usize>(&self) -> Option<String<N>> {
+        self.name.and_then(String::try_from_macroman)
+    }
+
+    /// The raw bytes of the resource name.
+    pub fn name_bytes(&self) -> Option<&[u8]> {
+        self.name
     }
 
     pub fn data(&self) -> &[u8] {

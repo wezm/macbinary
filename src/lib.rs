@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "no_std", no_std)]
+
 //! MacBinary Parser
 //!
 //! ### Specifications:
@@ -15,7 +17,10 @@
 // - zero-copy, ttf-parser style
 
 use core::fmt::{self, Display, Formatter};
+
 use crc::{Crc, CRC_16_XMODEM};
+#[cfg(feature = "no_std")]
+use heapless::String;
 
 use crate::binary::read::{ReadBinary, ReadBinaryDep, ReadCtxt, ReadFrom, ReadScope};
 use crate::binary::{NumFrom, U32Be};
@@ -284,16 +289,36 @@ impl MacBinary<'_> {
         self.version
     }
 
+    #[cfg(not(feature = "no_std"))]
     pub fn filename(&self) -> String {
         // For the purposes of this library we consider the system script to be Mac Roman.
         // The script field can indicate a different script if the high-bit is set though.
         // If the high-bit is set but the remaining 7-bits are zero that means it's still
         // MacRoman.
-        if self.header.script & 0x80 == 0x80 && self.header.script & !0x80 != 0 {
-            todo!("Handle non-macroman script")
-        } else {
-            String::from_macroman(self.header.filename)
-        }
+        // if self.header.script & 0x80 == 0x80 && self.header.script & !0x80 != 0 {
+        //     todo!("Handle non-macroman script")
+        // } else {
+        //     String::from_macroman(self.header.filename)
+        // }
+        // TODO Handle non-macroman script
+        String::from_macroman(self.header.filename)
+    }
+
+    /// The file name of the file encoding in this MacBinary file.
+    ///
+    /// The raw name can't be longer than 63 bytes in length. However,
+    /// this method converts the raw bytes from MacRoman into UTF-8 string and many non-ASCII
+    /// MacRoman bytes encode to more than one byte in UTF-8. This method will return `None` if
+    /// the `N` parameter is too small to hold the UTF-8 string.
+    #[cfg(feature = "no_std")]
+    pub fn filename<const N: usize>(&self) -> Option<String<N>> {
+        // TODO: Handle non-macroman script
+        String::try_from_macroman(self.header.filename)
+    }
+
+    /// The raw filename bytes
+    pub fn filename_bytes(&self) -> &[u8] {
+        self.header.filename
     }
 
     /// The file's creator code

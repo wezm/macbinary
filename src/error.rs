@@ -1,7 +1,8 @@
 //! Error types
 
+use core::fmt;
+
 use crate::binary::read::ReadEof;
-use std::fmt;
 
 /// Errors that originate when parsing binary data
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -24,8 +25,8 @@ impl From<ReadEof> for ParseError {
     }
 }
 
-impl From<std::num::TryFromIntError> for ParseError {
-    fn from(_error: std::num::TryFromIntError) -> Self {
+impl From<core::num::TryFromIntError> for ParseError {
+    fn from(_error: core::num::TryFromIntError) -> Self {
         ParseError::BadValue
     }
 }
@@ -47,4 +48,6 @@ impl fmt::Display for ParseError {
     }
 }
 
+// FIXME: Enable on no_std when https://github.com/rust-lang/rust/issues/103765 is stable
+#[cfg(not(feature = "no_std"))]
 impl std::error::Error for ParseError {}

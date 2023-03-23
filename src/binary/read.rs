@@ -2,17 +2,12 @@
 
 //! Parse binary data
 //!
-//! The is module provides the basis for all font parsing in Allsorts. The parsing approach
-//! is inspired by the paper,
+//! The is module was extracted from Allsorts. The parsing approach is inspired by the paper,
 //! [The next 700 data description languages](https://collaborate.princeton.edu/en/publications/the-next-700-data-description-languages) by Kathleen Fisher, Yitzhak Mandelbaum, David P. Walker.
 
-use std::borrow::Cow;
-use std::cmp;
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-use std::fmt;
-use std::marker::PhantomData;
-use std::rc::Rc;
+use core::cmp;
+use core::fmt;
+use core::marker::PhantomData;
 
 use super::size;
 use crate::binary::{I16Be, I32Be, I64Be, U16Be, U24Be, U32Be, I8, U8};
@@ -21,45 +16,16 @@ use crate::error::ParseError;
 #[derive(Debug, Copy, Clone)]
 pub struct ReadEof {}
 
-pub struct ReadBuf<'a> {
-    data: Cow<'a, [u8]>,
-}
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct ReadScope<'a> {
     base: usize,
     data: &'a [u8],
 }
 
-pub struct ReadScopeOwned {
-    base: usize,
-    data: Box<[u8]>,
-}
-
-impl ReadScopeOwned {
-    pub fn new(scope: ReadScope<'_>) -> ReadScopeOwned {
-        ReadScopeOwned {
-            base: scope.base,
-            data: Box::from(scope.data),
-        }
-    }
-
-    pub fn scope(&self) -> ReadScope<'_> {
-        ReadScope {
-            base: self.base,
-            data: &self.data,
-        }
-    }
-}
-
 #[derive(Clone)]
 pub struct ReadCtxt<'a> {
     scope: ReadScope<'a>,
     offset: usize,
-}
-
-pub struct ReadCache<T> {
-    map: HashMap<usize, Rc<T>>,
 }
 
 pub trait ReadBinary {
@@ -173,76 +139,6 @@ pub struct ReadArrayDepIter<'a, 'b, T: ReadFixedSizeDep> {
     index: usize,
 }
 
-#[derive(Clone)]
-pub enum ReadArrayCow<'a, T>
-where
-    T: ReadUnchecked,
-{
-    Owned(Vec<T::HostType>),
-    Borrowed(ReadArray<'a, T>),
-}
-
-pub struct ReadArrayCowIter<'a, 'b, T: ReadUnchecked> {
-    array: &'b ReadArrayCow<'a, T>,
-    index: usize,
-}
-
-impl<'a, T: ReadUnchecked> ReadArrayCow<'a, T> {
-    pub fn len(&self) -> usize {
-        match self {
-            ReadArrayCow::Borrowed(array) => array.len(),
-            ReadArrayCow::Owned(vec) => vec.len(),
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        match self {
-            ReadArrayCow::Borrowed(array) => array.is_empty(),
-            ReadArrayCow::Owned(vec) => vec.is_empty(),
-        }
-    }
-
-    pub fn read_item(&self, index: usize) -> Result<T::HostType, ParseError>
-    where
-        T::HostType: Copy,
-    {
-        match self {
-            ReadArrayCow::Borrowed(array) => array.read_item(index),
-            ReadArrayCow::Owned(vec) => Ok(vec[index]),
-        }
-    }
-
-    pub fn get_item(&self, index: usize) -> <T as ReadUnchecked>::HostType
-    where
-        T: ReadUnchecked,
-        <T as ReadUnchecked>::HostType: Copy,
-    {
-        match self {
-            ReadArrayCow::Borrowed(array) => array.get_item(index),
-            ReadArrayCow::Owned(vec) => vec[index],
-        }
-    }
-
-    // subarray and iter_res are not yet implemented
-
-    pub fn iter<'b>(&'b self) -> ReadArrayCowIter<'a, 'b, T> {
-        ReadArrayCowIter {
-            array: self,
-            index: 0,
-        }
-    }
-}
-
-impl<'a, T: ReadUnchecked> CheckIndex for ReadArrayCow<'a, T> {
-    fn check_index(&self, index: usize) -> Result<(), ParseError> {
-        if index < self.len() {
-            Ok(())
-        } else {
-            Err(ParseError::BadIndex)
-        }
-    }
-}
-
 impl<'a> ReadScope<'a> {
     pub fn new(data: &'a [u8]) -> ReadScope<'a> {
         let base = 0;
@@ -287,29 +183,6 @@ impl<'a> ReadScope<'a> {
         args: T::Args<'a>,
     ) -> Result<T::HostType<'a>, ParseError> {
         self.ctxt().read_dep::<T>(args)
-    }
-
-    pub fn read_cache<T>(
-        &self,
-        cache: &mut ReadCache<T::HostType<'a>>,
-    ) -> Result<Rc<T::HostType<'a>>, ParseError>
-    where
-        T: 'static + ReadBinaryDep<Args<'a> = ()>,
-    {
-        match cache.map.entry(self.base) {
-            Entry::Vacant(entry) => {
-                let t = Rc::new(self.read::<T>()?);
-                Ok(Rc::clone(entry.insert(t)))
-            }
-            Entry::Occupied(entry) => Ok(Rc::clone(entry.get())),
-        }
-    }
-}
-
-impl<T> ReadCache<T> {
-    pub fn new() -> Self {
-        let map = HashMap::new();
-        ReadCache { map }
     }
 }
 
@@ -524,32 +397,6 @@ impl<'a> ReadCtxt<'a> {
     }
 }
 
-impl<'a> ReadBuf<'a> {
-    pub fn scope(&'a self) -> ReadScope<'a> {
-        ReadScope::new(&*self.data)
-    }
-
-    pub fn into_data(self) -> Cow<'a, [u8]> {
-        self.data
-    }
-}
-
-impl<'a> From<&'a [u8]> for ReadBuf<'a> {
-    fn from(data: &'a [u8]) -> ReadBuf<'a> {
-        ReadBuf {
-            data: Cow::Borrowed(data),
-        }
-    }
-}
-
-impl<'a> From<Vec<u8>> for ReadBuf<'a> {
-    fn from(data: Vec<u8>) -> ReadBuf<'a> {
-        ReadBuf {
-            data: Cow::Owned(data),
-        }
-    }
-}
-
 impl<'a, T: ReadFixedSizeDep> ReadArray<'a, T> {
     pub fn len(&self) -> usize {
         self.length
@@ -602,26 +449,6 @@ impl<'a, T: ReadFixedSizeDep> ReadArray<'a, T> {
         }
     }
 
-    pub fn to_vec(&self) -> Vec<<T as ReadUnchecked>::HostType>
-    where
-        T: ReadUnchecked,
-    {
-        let mut vec = Vec::with_capacity(self.length);
-        for t in self.iter() {
-            vec.push(t);
-        }
-        vec
-    }
-
-    pub fn read_to_vec(&self) -> Result<Vec<T::HostType<'a>>, ParseError> {
-        let mut vec = Vec::with_capacity(self.length);
-        for res in self.iter_res() {
-            let t = res?;
-            vec.push(t);
-        }
-        Ok(vec)
-    }
-
     pub fn iter(&self) -> ReadArrayIter<'a, T>
     where
         T: ReadUnchecked,
@@ -642,16 +469,6 @@ impl<'a, T: ReadFixedSizeDep> ReadArray<'a, T> {
 }
 
 impl<'a, T: ReadFixedSizeDep> CheckIndex for ReadArray<'a, T> {
-    fn check_index(&self, index: usize) -> Result<(), ParseError> {
-        if index < self.len() {
-            Ok(())
-        } else {
-            Err(ParseError::BadIndex)
-        }
-    }
-}
-
-impl<T> CheckIndex for Vec<T> {
     fn check_index(&self, index: usize) -> Result<(), ParseError> {
         if index < self.len() {
             Ok(())
@@ -688,44 +505,6 @@ impl<'a, T: ReadUnchecked> Iterator for ReadArrayIter<'a, T> {
 }
 
 impl<'a, T: ReadUnchecked> ExactSizeIterator for ReadArrayIter<'a, T> {}
-
-impl<'a, 'b, T: ReadUnchecked> IntoIterator for &'b ReadArrayCow<'a, T>
-where
-    T::HostType: Copy,
-{
-    type Item = T::HostType;
-    type IntoIter = ReadArrayCowIter<'a, 'b, T>;
-
-    fn into_iter(self) -> ReadArrayCowIter<'a, 'b, T> {
-        self.iter()
-    }
-}
-
-impl<'a, 'b, T: ReadUnchecked> Iterator for ReadArrayCowIter<'a, 'b, T>
-where
-    T::HostType: Copy,
-{
-    type Item = T::HostType;
-
-    fn next(&mut self) -> Option<T::HostType> {
-        if self.index < self.array.len() {
-            let item = self.array.get_item(self.index);
-            self.index += 1;
-            Some(item)
-        } else {
-            None
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        if self.index < self.array.len() {
-            let length = self.array.len() - self.index;
-            (length, Some(length))
-        } else {
-            (0, Some(0))
-        }
-    }
-}
 
 impl<'a, 'b, T: ReadFixedSizeDep> Iterator for ReadArrayDepIter<'a, 'b, T> {
     type Item = Result<T::HostType<'a>, ParseError>;
@@ -871,16 +650,6 @@ where
         let t2 = T2::read_unchecked(ctxt);
         let t3 = T3::read_unchecked(ctxt);
         (t1, t2, t3)
-    }
-}
-
-impl<'a, T> fmt::Debug for ReadArrayCow<'a, T>
-where
-    T: ReadUnchecked,
-    <T as ReadUnchecked>::HostType: Copy + fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        f.debug_list().entries(self.iter()).finish()
     }
 }
 
