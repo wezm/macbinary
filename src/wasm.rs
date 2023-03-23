@@ -10,15 +10,25 @@ struct MacBinaryFile {
     data_fork: Vec<u8>,
     #[serde(with = "serde_bytes")]
     rsrc_fork: Vec<u8>,
+    created: u32,
+    modified: u32,
+    #[serde(rename = "type")]
+    type_: String,
+    creator: String,
 }
 
 #[wasm_bindgen]
-pub fn parse_macbinary(data: &[u8]) -> Result<JsValue, JsValue> {
-    let file = crate::parse(data)?;
+pub fn parse_macbinary(val: JsValue) -> Result<JsValue, JsValue> {
+    let data: serde_bytes::ByteBuf = serde_wasm_bindgen::from_value(val)?;
+    let file = crate::parse(&data)?;
     let res = MacBinaryFile {
         name: file.filename(),
         data_fork: file.data_fork().to_vec(),
         rsrc_fork: file.resource_fork_raw().to_vec(),
+        created: file.created(),
+        modified: file.modified(),
+        creator: file.file_creator().to_string(),
+        type_: file.file_type().to_string(),
     };
     let js = serde_wasm_bindgen::to_value(&res)?;
     Ok(js)
