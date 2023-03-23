@@ -30,16 +30,17 @@ struct Resource {
 pub fn parse_macbinary(val: JsValue) -> Result<JsValue, JsValue> {
     let data: serde_bytes::ByteBuf = serde_wasm_bindgen::from_value(val)?;
     let file = crate::parse(&data)?;
-    let rsrc = file.resource_fork()?;
 
     let mut resources = Vec::new();
-    for item in rsrc.resource_types() {
-        resources.extend(rsrc.resources(item).map(|resource| Resource {
-            type_: item.resource_type().to_string(),
-            id: resource.id(),
-            name: resource.name(),
-            data: resource.data().to_vec(),
-        }))
+    if let Some(rsrc) = file.resource_fork()? {
+        for item in rsrc.resource_types() {
+            resources.extend(rsrc.resources(item).map(|resource| Resource {
+                type_: item.resource_type().to_string(),
+                id: resource.id(),
+                name: resource.name(),
+                data: resource.data().to_vec(),
+            }))
+        }
     }
 
     let res = MacBinaryFile {

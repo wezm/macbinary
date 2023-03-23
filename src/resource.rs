@@ -407,7 +407,7 @@ mod tests {
     fn test_iter_resources() {
         let data = read_fixture("tests/Text File.bin");
         let file = crate::parse(&data).unwrap();
-        let rsrc = file.resource_fork().unwrap();
+        let rsrc = file.resource_fork().unwrap().unwrap();
         let mut resources = Vec::new();
         for item in rsrc.resource_types() {
             resources.extend(rsrc.resources(item).map(|resource| {

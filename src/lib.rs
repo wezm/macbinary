@@ -360,8 +360,15 @@ impl MacBinary<'_> {
     }
 
     /// Parsed resource fork
-    pub fn resource_fork(&self) -> Result<ResourceFork<'_>, ParseError> {
-        ResourceFork::new(self.rsrc_fork)
+    ///
+    /// Note: Not all files have resource fork data. This method will return None if the resource
+    /// fork is empty.
+    pub fn resource_fork(&self) -> Result<Option<ResourceFork<'_>>, ParseError> {
+        if self.rsrc_fork.is_empty() {
+            return Ok(None);
+        }
+
+        ResourceFork::new(self.rsrc_fork).map(Some)
     }
 }
 
@@ -479,5 +486,14 @@ mod tests {
         let file = parse(&data).unwrap();
 
         check_text_file(&file, Version::III);
+    }
+
+    #[test]
+    fn test_no_resource_fork() {
+        let data = read_fixture("tests/No resource fork.txt.bin");
+        let file = parse(&data).unwrap();
+
+        assert_eq!(file.version(), Version::III);
+        assert!(file.resource_fork().unwrap().is_none());
     }
 }
