@@ -124,11 +124,12 @@ pub fn detect(data: &[u8]) -> Option<Version> {
     // Check for MacBinary I
     // Offsets 101-125, Byte, should all be 0.
     // Offset 2, Byte, (the length of the file name) should be in the range of 1-63.
+    //   Note: It says Offset 2 but the length of the file name is at offset 1
     // Offsets 83 and 87, Long Word, (the length of the forks) should be in the range of 0-$007F FFFF.
     let data_fork_len = u32::from_be_bytes(data[83..][..4].try_into().unwrap());
     let rsrc_fork_len = u32::from_be_bytes(data[87..][..4].try_into().unwrap());
     let macbinary1 = data[101..=125].iter().all(|byte| *byte == 0)
-        && (1..=63).contains(&data[2])
+        && (1..=63).contains(&data[1])
         && data_fork_len <= 0x007F_FFFF
         && rsrc_fork_len <= 0x007F_FFFF;
 
@@ -440,15 +441,36 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_macbinary_3() {
-        let data = read_fixture("tests/Text File.bin");
-        let file = parse(&data).unwrap();
-
+    fn check_text_file(file: &MacBinary, version: Version) {
+        assert_eq!(file.version(), version);
         assert_eq!(file.filename(), "Text File");
         assert_eq!(file.file_type(), FourCC(u32::from_be_bytes(*b"TEXT")));
         assert_eq!(file.file_creator(), FourCC(u32::from_be_bytes(*b"R*ch"))); // BBEdit
         assert_eq!(file.data_fork(), b"This is a test file.\r");
         assert_eq!(file.resource_fork_raw().len(), 1454);
+    }
+
+    #[test]
+    fn test_macbinary_1() {
+        let data = read_fixture("tests/Text File I.Bin");
+        let file = parse(&data).unwrap();
+
+        check_text_file(&file, Version::I);
+    }
+
+    #[test]
+    fn test_macbinary_2() {
+        let data = read_fixture("tests/Text File II.bin");
+        let file = parse(&data).unwrap();
+
+        check_text_file(&file, Version::II);
+    }
+
+    #[test]
+    fn test_macbinary_3() {
+        let data = read_fixture("tests/Text File.bin");
+        let file = parse(&data).unwrap();
+
+        check_text_file(&file, Version::III);
     }
 }
