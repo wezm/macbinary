@@ -1,0 +1,27 @@
+task:
+  name: Build (Alpine Linux)
+  container:
+    image: alpine:3.17
+    cpu: 8
+  matrix:
+    - environment:
+        RUST_VERSION: "1.68.0"
+    - environment:
+        RUST_VERSION: "stable"
+  environment:
+    PATH: "$HOME/.cargo/bin:$PATH"
+    CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+  cargo_cache:
+    folder: $HOME/.cargo/registry
+    fingerprint_script: cat Cargo.toml
+  install_script:
+    - apk --update add curl git gcc musl-dev
+    - curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain ${RUST_VERSION}
+    - rustup target add wasm32-unknown-unknown
+    - rustup target add riscv32imac-unknown-none-elf
+  test_script:
+    - cargo test
+    - cargo build --lib --target wasm32-unknown-unknown
+    - cargo build --lib --target riscv32imac-unknown-none-elf --features no_std
+
+  before_cache_script: rm -rf $HOME/.cargo/registry/index
