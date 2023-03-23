@@ -1,4 +1,4 @@
-//! Routines for parsing and reading structured data from resource forks
+//! Routines for parsing and reading structured data from resource forks.
 //!
 //! ### Reference:
 //!
@@ -36,6 +36,7 @@ struct TypeList<'a> {
     list: ReadArray<'a, TypeListItem>,
 }
 
+/// An entry in the resource type list of a resource fork.
 #[derive(Copy, Clone)]
 pub struct TypeListItem {
     /// Resource type
@@ -87,6 +88,7 @@ pub struct Resources<'a, 'rsrc> {
 
 impl<'a> ResourceFork<'a> {
     // FIXME: Make this a ReadBinary impl
+    /// Parse resource fork data
     pub fn new(data: &[u8]) -> Result<ResourceFork<'_>, ParseError> {
         let scope = ReadScope::new(data);
         let mut ctxt = scope.ctxt();
@@ -107,6 +109,7 @@ impl<'a> ResourceFork<'a> {
         })
     }
 
+    /// Create an iterator over the resource types in the resource fork.
     pub fn resource_types(&self) -> ResourceTypes<'_, 'a> {
         ResourceTypes {
             fork: self,
@@ -114,6 +117,9 @@ impl<'a> ResourceFork<'a> {
         }
     }
 
+    /// Create an iterator over the resources of the supplied type in the resource fork.
+    ///
+    /// [`TypeListItem`] instance is obtained through [`Self::resource_types`].
     pub fn resources<'b>(&'b self, item: TypeListItem) -> Resources<'_, 'a> {
         Resources {
             fork: self,
@@ -124,6 +130,7 @@ impl<'a> ResourceFork<'a> {
 }
 
 impl ResourceFork<'_> {
+    /// Get the data for the resource with the supplied type and id.
     pub fn get_resource(&self, rsrc_type: FourCC, rsrc_id: i16) -> Option<Resource<'_>> {
         let reference_list = self.map.type_list.find(rsrc_type)?;
         let item = reference_list.find(rsrc_id)?;
@@ -219,6 +226,7 @@ impl ReadFrom for TypeListItem {
 }
 
 impl TypeListItem {
+    /// Returns the type of the resource that this item represents.
     pub fn resource_type(&self) -> FourCC {
         self.rsrc_type
     }
@@ -266,10 +274,12 @@ impl ReadFrom for ReferenceListItem {
 }
 
 impl Resource<'_> {
+    /// Returns the ID of this resource.
     pub fn id(&self) -> i16 {
         self.id
     }
 
+    /// The name associated with this resource, if present.
     #[cfg(not(feature = "no_std"))]
     pub fn name(&self) -> Option<String> {
         self.name.map(|name| String::from_macroman(name))
@@ -291,6 +301,7 @@ impl Resource<'_> {
         self.name
     }
 
+    /// The data associated with this resource.
     pub fn data(&self) -> &[u8] {
         self.data
     }

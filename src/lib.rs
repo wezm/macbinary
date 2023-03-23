@@ -1,6 +1,7 @@
 #![cfg_attr(feature = "no_std", no_std)]
+#![deny(missing_docs)]
 
-//! MacBinary Parser
+//! MacBinary and resource fork parser
 //!
 //! ### Specifications:
 //!
@@ -29,7 +30,7 @@ use crate::macroman::FromMacRoman;
 pub(crate) mod binary;
 pub(crate) mod error;
 mod macroman;
-mod resource;
+pub mod resource;
 #[cfg(test)]
 mod test;
 #[cfg(target_family = "wasm")]
@@ -43,7 +44,7 @@ pub use crate::resource::ResourceFork;
 /// A four-character code
 ///
 /// A 32-bit number that typically holds 4 8-bit ASCII characters, used for type and creator
-/// codes, and resource types. Eg. 'mBIN' 'SIZE' 'ICON' 'APPL'.
+/// codes, and resource types. Eg. `mBIN` `SIZE` `ICON` `APPL`.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct FourCC(pub u32);
 
@@ -97,8 +98,11 @@ struct Header<'a> {
 /// MacBinary version.
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
 pub enum Version {
+    /// MacBinary I
     I = 1,
+    /// MacBinary II
     II = 2,
+    /// MacBinary III
     III = 3,
 }
 
@@ -287,10 +291,12 @@ impl ReadBinaryDep for MacBinary<'_> {
 }
 
 impl MacBinary<'_> {
+    /// Returns the version of this MacBinary file.
     pub fn version(&self) -> Version {
         self.version
     }
 
+    /// The file name of the file encoded in this MacBinary file.
     #[cfg(not(feature = "no_std"))]
     pub fn filename(&self) -> String {
         // For the purposes of this library we consider the system script to be Mac Roman.
@@ -306,7 +312,7 @@ impl MacBinary<'_> {
         String::from_macroman(self.header.filename)
     }
 
-    /// The file name of the file encoding in this MacBinary file.
+    /// The file name of the file encoded in this MacBinary file.
     ///
     /// The raw name can't be longer than 63 bytes in length. However,
     /// this method converts the raw bytes from MacRoman into UTF-8 string and many non-ASCII

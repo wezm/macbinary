@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 //! Parse binary data
 //!
 //! The is module was extracted from Allsorts. The parsing approach is inspired by the paper,
