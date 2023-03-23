@@ -195,10 +195,7 @@ impl ReadBinary for TypeList<'_> {
     fn read<'a>(ctxt: &mut ReadCtxt<'a>) -> Result<Self::HostType<'a>, ParseError> {
         let scope = ctxt.scope();
         // Value is stored minus 1, so add 1 to it after reading
-        let num_types = ctxt
-            .read_u16be()?
-            .checked_add(1)
-            .ok_or(ParseError::Overflow)?;
+        let num_types = ctxt.read_u16be()?.wrapping_add(1);
         let list = ctxt.read_array::<TypeListItem>(usize::from(num_types))?;
 
         Ok(TypeList { scope, list })
