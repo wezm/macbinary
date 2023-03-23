@@ -7,7 +7,9 @@
 
 // Re: compressed resources: <http://preserve.mactech.com/articles/mactech/Vol.09/09.01/ResCompression/index.html>
 
-use crate::binary::read::{ReadArray, ReadBinary, ReadBinaryDep, ReadCtxt, ReadFrom, ReadScope};
+use crate::binary::read::{
+    CheckIndex, ReadArray, ReadBinary, ReadBinaryDep, ReadCtxt, ReadFrom, ReadScope,
+};
 use crate::binary::{I16Be, NumFrom, U16Be, U24Be, U32Be, U8};
 use crate::error::ParseError;
 use crate::macroman::FromMacRoman;
@@ -30,7 +32,8 @@ struct TypeList<'a> {
     list: ReadArray<'a, TypeListItem>,
 }
 
-struct TypeListItem {
+#[derive(Copy, Clone)]
+pub struct TypeListItem {
     /// Resource type
     rsrc_type: FourCC,
     /// Number of resources of this type
@@ -54,12 +57,30 @@ struct ReferenceListItem {
 
 /// An individual resource from a resource fork.
 pub struct Resource<'a> {
+    id: i16,
     name: Option<&'a [u8]>,
     attributes: u8,
     data: &'a [u8],
 }
 
-impl ResourceFork<'_> {
+/// An iterator over the resource types in a resource fork.
+///
+/// Typically created with [ResourceFork::resource_types].
+pub struct ResourceTypes<'a, 'rsrc> {
+    fork: &'a ResourceFork<'rsrc>,
+    type_index: u16,
+}
+
+/// An iterator over the resources of a given type.
+///
+/// Typically created with [ResourceFork::resources].
+pub struct Resources<'a, 'rsrc> {
+    fork: &'a ResourceFork<'rsrc>,
+    item: TypeListItem,
+    rsrc_index: u16,
+}
+
+impl<'a> ResourceFork<'a> {
     // FIXME: Make this a ReadBinary impl
     pub fn new(data: &[u8]) -> Result<ResourceFork<'_>, ParseError> {
         let scope = ReadScope::new(data);
@@ -80,16 +101,36 @@ impl ResourceFork<'_> {
             map: rsrc_map,
         })
     }
+
+    pub fn resource_types(&self) -> ResourceTypes<'_, 'a> {
+        ResourceTypes {
+            fork: self,
+            type_index: 0,
+        }
+    }
+
+    pub fn resources<'b>(&'b self, item: TypeListItem) -> Resources<'_, 'a> {
+        Resources {
+            fork: self,
+            item,
+            rsrc_index: 0,
+        }
+    }
 }
 
 impl ResourceFork<'_> {
     pub fn get_resource(&self, rsrc_type: FourCC, rsrc_id: i16) -> Option<Resource<'_>> {
         let reference_list = self.map.type_list.find(rsrc_type)?;
         let item = reference_list.find(rsrc_id)?;
+        self.read_resource(&item)
+    }
+
+    fn read_resource(&self, item: &ReferenceListItem) -> Option<Resource<'_>> {
         let data = self.read_resource_data(item.data_offset)?;
         let name = item.name_offset.and_then(|offset| self.read_name(offset));
 
         Some(Resource {
+            id: item.id,
             name,
             attributes: item.attributes,
             data,
@@ -110,9 +151,6 @@ impl ResourceFork<'_> {
         ctxt.read_slice(usize::from(len)).ok() // FIXME: ok
     }
 }
-
-// TODO: an iterator over all the resources
-// Iter each type, then each reference list item
 
 impl ReadBinary for ResourceMap<'_> {
     type HostType<'a> = ResourceMap<'a>;
@@ -158,10 +196,7 @@ impl ReadBinary for TypeList<'_> {
 impl TypeList<'_> {
     fn find(&self, rsrc_type: FourCC) -> Option<ReferenceList<'_>> {
         let item = self.list.iter().find(|item| item.rsrc_type == rsrc_type)?;
-        self.scope
-            .offset(usize::from(item.reference_list_offset))
-            .read_dep::<ReferenceList<'_>>(item.num_rsrc)
-            .ok() // FIXME: ok
+        item.reference_list(self.scope)
     }
 }
 
@@ -171,10 +206,23 @@ impl ReadFrom for TypeListItem {
     fn from((rsrc_type, num_rsrc, reference_list_offset): (FourCC, u16, u16)) -> Self {
         TypeListItem {
             rsrc_type,
-            // Value is stored minus 2
+            // Value is stored minus 1
             num_rsrc: num_rsrc.wrapping_add(1),
             reference_list_offset,
         }
+    }
+}
+
+impl TypeListItem {
+    pub fn resource_type(&self) -> FourCC {
+        self.rsrc_type
+    }
+
+    fn reference_list<'a>(&self, scope: ReadScope<'a>) -> Option<ReferenceList<'a>> {
+        scope
+            .offset(usize::from(self.reference_list_offset))
+            .read_dep::<ReferenceList<'_>>(self.num_rsrc)
+            .ok() // FIXME: ok?
     }
 }
 
@@ -222,6 +270,59 @@ impl Resource<'_> {
     }
 }
 
+impl<'a, 'rsrc> Iterator for ResourceTypes<'a, 'rsrc> {
+    type Item = TypeListItem;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Get the current type list
+        let list = &self.fork.map.type_list.list;
+        let type_list_item = list
+            .check_index(usize::from(self.type_index))
+            .ok()
+            .map(|()| list.get_item(usize::from(self.type_index)))?;
+
+        self.type_index += 1;
+        Some(type_list_item)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let num_remaining = self.fork.map.type_list.list.len() - usize::from(self.type_index);
+        (num_remaining, Some(num_remaining))
+    }
+}
+
+impl<'rsrc, 'a: 'rsrc> Iterator for Resources<'a, 'rsrc> {
+    type Item = Resource<'rsrc>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let reference_list = self.reference_list()?;
+        let reference_list_item = reference_list
+            .list
+            .check_index(usize::from(self.rsrc_index))
+            .ok()
+            .map(|()| reference_list.list.get_item(usize::from(self.rsrc_index)))?;
+        let resource = self.fork.read_resource(&reference_list_item)?;
+
+        self.rsrc_index += 1;
+        Some(resource)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.reference_list()
+            .map(|reference_list| {
+                let num_remaining = reference_list.list.len() - usize::from(self.rsrc_index);
+                (num_remaining, Some(num_remaining))
+            })
+            .unwrap_or((0, None))
+    }
+}
+
+impl Resources<'_, '_> {
+    fn reference_list(&self) -> Option<ReferenceList<'_>> {
+        self.item.reference_list(self.fork.map.type_list.scope)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -249,6 +350,43 @@ mod tests {
                 0x02, 0xF7, 0x02, 0xB6, 0x00, 0x2C, 0x00, 0x36, 0x02, 0xF7, 0x02, 0xB6, 0xE0, 0x40,
                 0xD4, 0xE8, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00
+            ]
+        );
+    }
+
+    #[test]
+    fn test_iter_types() {
+        let data = read_fixture("tests/Text File.bin");
+        let file = crate::parse(&data).unwrap();
+        let rsrc = ResourceFork::new(file.resource_fork_raw()).unwrap();
+        let types: Vec<_> = rsrc
+            .resource_types()
+            .map(|item| item.resource_type().to_string())
+            .collect();
+        assert_eq!(types, vec![String::from("MPSR"), String::from("BBST")]);
+    }
+
+    #[test]
+    fn test_iter_resources() {
+        let data = read_fixture("tests/Text File.bin");
+        let file = crate::parse(&data).unwrap();
+        let rsrc = ResourceFork::new(file.resource_fork_raw()).unwrap();
+        let mut resources = Vec::new();
+        for item in rsrc.resource_types() {
+            resources.extend(rsrc.resources(item).map(|resource| {
+                (
+                    item.rsrc_type.to_string(),
+                    resource.id,
+                    resource.name(),
+                    resource.data().len(),
+                )
+            }))
+        }
+        assert_eq!(
+            resources,
+            vec![
+                (String::from("MPSR"), 1005, None, 72),
+                (String::from("BBST"), 128, None, 1048),
             ]
         );
     }
