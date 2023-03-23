@@ -8,6 +8,7 @@ struct MacBinaryFile {
     name: String,
     #[serde(with = "serde_bytes")]
     data_fork: Vec<u8>,
+    rsrc_fork_len: usize,
     resources: Vec<Resource>,
     created: u32,
     modified: u32,
@@ -46,6 +47,7 @@ pub fn parse_macbinary(val: JsValue) -> Result<JsValue, JsValue> {
     let res = MacBinaryFile {
         name: file.filename(),
         data_fork: file.data_fork().to_vec(),
+        rsrc_fork_len: file.resource_fork_raw().len(),
         resources,
         created: file.created(),
         modified: file.modified(),
