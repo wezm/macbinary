@@ -24,6 +24,7 @@ pub struct ResourceFork<'a> {
     map: ResourceMap<'a>,
 }
 
+#[allow(unused)]
 struct ResourceMap<'a> {
     attributes: u16,
     type_list: TypeList<'a>,
@@ -59,6 +60,7 @@ struct ReferenceListItem {
 }
 
 /// An individual resource from a resource fork.
+#[allow(unused)]
 pub struct Resource<'a> {
     id: i16,
     name: Option<&'a [u8]>,

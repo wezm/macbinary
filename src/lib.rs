@@ -56,6 +56,7 @@ pub struct MacBinary<'a> {
 }
 
 /// MacBinary header
+#[allow(unused)]
 struct Header<'a> {
     filename: &'a [u8],
     secondary_header_len: u16,
