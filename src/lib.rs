@@ -45,7 +45,7 @@ pub use crate::resource::ResourceFork;
 ///
 /// A 32-bit number that typically holds 4 8-bit ASCII characters, used for type and creator
 /// codes, and resource types. Eg. `mBIN` `SIZE` `ICON` `APPL`.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct FourCC(pub u32);
 
 /// A parsed MacBinary file containing metadata, data fork (if present), and resource fork (if present)
@@ -393,6 +393,12 @@ impl Display for FourCC {
     }
 }
 
+impl fmt::Debug for FourCC {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "'{}'", self)
+    }
+}
+
 fn next_u16_multiple_of_128(value: u16) -> Result<u16, ParseError> {
     let rem = value % 128;
     if rem == 0 {
@@ -415,9 +421,9 @@ fn next_u32_multiple_of_128(value: u32) -> Result<u32, ParseError> {
 ///
 /// The Mac OS epoch is 1 January 1904, UNIX epoch is 1 Jan 1970.
 fn mactime(timestamp: u32) -> u32 {
-    // 66 years from 1904 to 1970, 18 leap years, 86400 seconds in a day
-    const OFFSET: u32 = 66 * 365 * 86400 + (18 * 86400);
-    timestamp.wrapping_add(OFFSET)
+    // 66 years from 1904 to 1970, 17 leap years, 86400 seconds in a day
+    const OFFSET: u32 = 66 * 365 * 86400 + (17 * 86400);
+    timestamp.wrapping_sub(OFFSET)
 }
 
 fn calc_crc(data: &[u8]) -> u16 {
@@ -495,5 +501,19 @@ mod tests {
 
         assert_eq!(file.version(), Version::III);
         assert!(file.resource_fork().unwrap().is_none());
+    }
+
+    #[test]
+    fn test_dates() {
+        let data = read_fixture("tests/Date Test.bin");
+        let file = parse(&data).unwrap();
+
+        assert_eq!(file.version(), Version::III);
+        assert_eq!(file.filename(), "Date Test");
+        assert_eq!(file.file_type(), FourCC(u32::from_be_bytes(*b"TEXT")));
+        assert_eq!(file.file_creator(), FourCC(u32::from_be_bytes(*b"MPS "))); // MPW Shell
+        assert_eq!(file.data_fork(), b"Sunday, 26 March 2023 10:00:52 AM\r");
+        assert_eq!(file.created(), 1679824852);
+        assert_eq!(file.modified(), 1679824852);
     }
 }
