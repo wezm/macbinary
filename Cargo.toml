@@ -1,11 +1,11 @@
 [package]
 name = "macbinary"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 description = "MacBinary and resource fork parser"
-keywords = ["macos", "retro", "computing"]
-# categories = ["command-line-utilities", "web-programming"]
+keywords = ["macos", "retro", "computing", "no_std"]
+categories = ["parser-implementations", "encoding", "wasm", "no-std"]
 
 homepage = "https://github.com/wezm/rsspls"
 repository = "https://github.com/wezm/rsspls.git"
