@@ -7,8 +7,8 @@ description = "MacBinary and resource fork parser"
 keywords = ["macos", "retro", "computing", "no_std"]
 categories = ["parser-implementations", "encoding", "wasm", "no-std"]
 
-homepage = "https://github.com/wezm/rsspls"
-repository = "https://github.com/wezm/rsspls.git"
+homepage = "https://7bit.org/macbinary/"
+repository = "https://github.com/wezm/macbinary"
 
 readme = "README.md"
 license = "Apache-2.0"
