@@ -10,14 +10,11 @@
 
 <div align="center">
   <a href="https://cirrus-ci.com/github/wezm/macbinary">
-    <img src="https://api.cirrus-ci.com/github/wezm/macbinary.svg" alt="Build Status">
-  </a>
+    <img src="https://api.cirrus-ci.com/github/wezm/macbinary.svg" alt="Build Status"></a>
   <a href="https://docs.rs/macbinary">
-    <img src="https://docs.rs/macbinary/badge.svg" alt="Documentation">
-  </a>
+    <img src="https://docs.rs/macbinary/badge.svg" alt="Documentation"></a>
   <a href="https://crates.io/crates/macbinary">
-    <img src="https://img.shields.io/crates/v/macbinary.svg" alt="Version">
-  </a>
+    <img src="https://img.shields.io/crates/v/macbinary.svg" alt="Version"></a>
   <img src="https://img.shields.io/crates/l/macbinary.svg" alt="License">
 </div>
 
