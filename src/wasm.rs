@@ -1,7 +1,6 @@
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
-
-use crate::ParseError;
+use read_binary::ParseError;
 
 #[derive(Serialize)]
 struct MacBinaryFile {
@@ -30,10 +29,10 @@ struct Resource {
 #[wasm_bindgen]
 pub fn parse_macbinary(val: JsValue) -> Result<JsValue, JsValue> {
     let data: serde_bytes::ByteBuf = serde_wasm_bindgen::from_value(val)?;
-    let file = crate::parse(&data)?;
+    let file = crate::parse(&data).map_err(to_js)?;
 
     let mut resources = Vec::new();
-    if let Some(rsrc) = file.resource_fork()? {
+    if let Some(rsrc) = file.resource_fork().map_err(to_js)? {
         for item in rsrc.resource_types() {
             resources.extend(rsrc.resources(item).map(|resource| Resource {
                 type_: item.resource_type().to_string(),
@@ -58,8 +57,6 @@ pub fn parse_macbinary(val: JsValue) -> Result<JsValue, JsValue> {
     Ok(js)
 }
 
-impl From<ParseError> for JsValue {
-    fn from(err: ParseError) -> JsValue {
-        JsValue::from(err.to_string())
-    }
+fn to_js(err: ParseError) -> JsValue {
+    JsValue::from(err.to_string())
 }
