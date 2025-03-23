@@ -108,12 +108,15 @@ pub fn detect(data: &[u8]) -> Option<Version> {
     // All MacBinary files start with a 128-byte header and the first byte is zero
     (data.len() >= 128 && data[0] == 0).then_some(())?;
 
-    // To determine if a header is a valid MacBinary header, first take advantage of the new MacBinary III signature located at offset 102
+    // To determine if a header is a valid MacBinary header, first take advantage of the new
+    // MacBinary III signature located at offset 102.
     if ReadScope::new(&data[102..][..4]).read::<FourCC>() == Ok(FourCC(MBIN_SIG)) {
         return Some(Version::III);
     }
 
-    // If it is not a MacBinary III header, start by checking bytes 0 and 74 - they should both be zero. If they are both zero, either (a) the CRC should match, which means it is a MacBinary II file, or (b) byte 82 is zero, which means it may be a MacBinary I file.
+    // If it is not a MacBinary III header, start by checking bytes 0 and 74 - they should both be
+    // zero. If they are both zero, either (a) the CRC should match, which means it is a MacBinary
+    // II file, or (b) byte 82 is zero, which means it may be a MacBinary I file.
     if data[74] != 0 || data[82] != 0 {
         return None;
     }
