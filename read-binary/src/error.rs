@@ -2,7 +2,7 @@
 
 use core::fmt;
 
-use crate::binary::read::ReadEof;
+use crate::read::ReadEof;
 
 /// Errors that originate when parsing binary data
 #[derive(Clone, Eq, PartialEq, Debug)]

@@ -10,13 +10,12 @@
 #[cfg(feature = "no_std")]
 use heapless::String;
 
-use crate::binary::read::{
-    CheckIndex, ReadArray, ReadBinary, ReadBinaryDep, ReadCtxt, ReadFrom, ReadScope,
-};
-use crate::binary::{I16Be, NumFrom, U16Be, U24Be, U32Be, U8};
-use crate::error::ParseError;
 use crate::macroman::FromMacRoman;
 use crate::FourCC;
+use read_binary::read::{
+    CheckIndex, ReadArray, ReadBinary, ReadBinaryDep, ReadCtxt, ReadFrom, ReadScope,
+};
+use read_binary::{I16Be, NumFrom, ParseError, U16Be, U24Be, U32Be, U8};
 
 /// A parsed resource fork.
 pub struct ResourceFork<'a> {

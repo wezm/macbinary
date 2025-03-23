@@ -1,9 +1,11 @@
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 
 //! Reading and writing of binary data.
 
-pub(crate) mod read;
-// pub mod write;
+mod error;
+pub mod read;
+
+pub use error::ParseError;
 
 /// Unsigned 8-bit binary type.
 #[derive(Copy, Clone)]

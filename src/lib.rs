@@ -22,13 +22,11 @@ use core::fmt::{self, Display, Formatter};
 use crc::{Crc, CRC_16_XMODEM};
 #[cfg(feature = "no_std")]
 use heapless::String;
+use read_binary::read::{ReadBinary, ReadBinaryDep, ReadCtxt, ReadFrom, ReadScope};
+use read_binary::{NumFrom, ParseError, U32Be};
 
-use crate::binary::read::{ReadBinary, ReadBinaryDep, ReadCtxt, ReadFrom, ReadScope};
-use crate::binary::{NumFrom, U32Be};
 use crate::macroman::FromMacRoman;
 
-pub(crate) mod binary;
-pub(crate) mod error;
 mod macroman;
 pub mod resource;
 #[cfg(test)]
@@ -38,7 +36,6 @@ mod wasm;
 
 const MBIN_SIG: u32 = u32::from_be_bytes(*b"mBIN");
 
-pub use crate::error::ParseError;
 pub use crate::resource::ResourceFork;
 
 /// A four-character code
@@ -148,7 +145,7 @@ pub fn detect(data: &[u8]) -> Option<Version> {
 /// Parse a MacBinary encoded file.
 pub fn parse(data: &[u8]) -> Result<MacBinary<'_>, ParseError> {
     let Some(version) = detect(data) else {
-        return Err(ParseError::BadVersion) // FIXME: Better error type
+        return Err(ParseError::BadVersion); // FIXME: Better error type
     };
     ReadScope::new(data).read_dep::<MacBinary<'_>>(version)
 }
@@ -250,7 +247,11 @@ impl ReadBinaryDep for MacBinary<'_> {
         ctxt: &mut ReadCtxt<'a>,
         version: Version,
     ) -> Result<Self::HostType<'a>, ParseError> {
-        let crc_data = ctxt.scope().data().get(..124).ok_or(ParseError::BadEof)?;
+        let crc_data = ctxt
+            .scope()
+            .data()
+            .get(..124)
+            .ok_or(read_binary::ParseError::BadEof)?;
 
         // The binary format consists of a 128-byte header containing all the information necessary
         // to reproduce the document's directory entry on the receiving Macintosh; followed by the

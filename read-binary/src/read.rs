@@ -8,8 +8,7 @@ use core::fmt;
 use core::marker::PhantomData;
 
 use super::size;
-use crate::binary::{I16Be, I32Be, I64Be, U16Be, U24Be, U32Be, I8, U8};
-use crate::error::ParseError;
+use crate::{I8, I16Be, I32Be, I64Be, ParseError, U8, U16Be, U24Be, U32Be};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ReadEof {}
