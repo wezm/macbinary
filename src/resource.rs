@@ -79,8 +79,8 @@ pub struct ResourceTypes<'a, 'rsrc> {
 /// An iterator over the resources of a given type.
 ///
 /// Typically created with [ResourceFork::resources].
-pub struct Resources<'a, 'rsrc> {
-    fork: &'a ResourceFork<'rsrc>,
+pub struct Resources<'rsrc> {
+    fork: &'rsrc ResourceFork<'rsrc>,
     item: TypeListItem,
     rsrc_index: u16,
 }
@@ -119,7 +119,7 @@ impl<'a> ResourceFork<'a> {
     /// Create an iterator over the resources of the supplied type in the resource fork.
     ///
     /// [`TypeListItem`] instance is obtained through [`Self::resource_types`].
-    pub fn resources<'b>(&'b self, item: TypeListItem) -> Resources<'_, 'a> {
+    pub fn resources(&'a self, item: TypeListItem) -> Resources<'a> {
         Resources {
             fork: self,
             item,
@@ -128,15 +128,15 @@ impl<'a> ResourceFork<'a> {
     }
 }
 
-impl ResourceFork<'_> {
+impl<'a> ResourceFork<'a> {
     /// Get the data for the resource with the supplied type and id.
-    pub fn get_resource(&self, rsrc_type: FourCC, rsrc_id: i16) -> Option<Resource<'_>> {
+    pub fn get_resource(&self, rsrc_type: FourCC, rsrc_id: i16) -> Option<Resource<'a>> {
         let reference_list = self.map.type_list.find(rsrc_type)?;
         let item = reference_list.find(rsrc_id)?;
         self.read_resource(&item)
     }
 
-    fn read_resource(&self, item: &ReferenceListItem) -> Option<Resource<'_>> {
+    fn read_resource(&self, item: &ReferenceListItem) -> Option<Resource<'a>> {
         let data = self.read_resource_data(item.data_offset)?;
         let name = item.name_offset.and_then(|offset| self.read_name(offset));
 
@@ -148,7 +148,7 @@ impl ResourceFork<'_> {
         })
     }
 
-    fn read_resource_data(&self, offset: u32) -> Option<&[u8]> {
+    fn read_resource_data(&self, offset: u32) -> Option<&'a [u8]> {
         let mut ctxt = ReadScope::new(self.rsrc_data)
             .offset(usize::num_from(offset))
             .ctxt();
@@ -156,7 +156,7 @@ impl ResourceFork<'_> {
         ctxt.read_slice(usize::num_from(len)).ok() // FIXME: ok
     }
 
-    fn read_name(&self, offset: u16) -> Option<&[u8]> {
+    fn read_name(&self, offset: u16) -> Option<&'a [u8]> {
         let mut ctxt = self.map.name_list_scope.offset(usize::from(offset)).ctxt();
         let len = ctxt.read_u8().ok()?;
         ctxt.read_slice(usize::from(len)).ok() // FIXME: ok
@@ -269,7 +269,7 @@ impl ReadFrom for ReferenceListItem {
     }
 }
 
-impl Resource<'_> {
+impl<'a> Resource<'a> {
     /// Returns the ID of this resource.
     pub fn id(&self) -> i16 {
         self.id
@@ -293,12 +293,12 @@ impl Resource<'_> {
     }
 
     /// The raw bytes of the resource name.
-    pub fn name_bytes(&self) -> Option<&[u8]> {
+    pub fn name_bytes(&self) -> Option<&'a [u8]> {
         self.name
     }
 
     /// The data associated with this resource.
-    pub fn data(&self) -> &[u8] {
+    pub fn data(&self) -> &'a [u8] {
         self.data
     }
 }
@@ -324,7 +324,7 @@ impl<'a, 'rsrc> Iterator for ResourceTypes<'a, 'rsrc> {
     }
 }
 
-impl<'rsrc, 'a: 'rsrc> Iterator for Resources<'a, 'rsrc> {
+impl<'rsrc> Iterator for Resources<'rsrc> {
     type Item = Resource<'rsrc>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -350,7 +350,7 @@ impl<'rsrc, 'a: 'rsrc> Iterator for Resources<'a, 'rsrc> {
     }
 }
 
-impl Resources<'_, '_> {
+impl Resources<'_> {
     fn reference_list(&self) -> Option<ReferenceList<'_>> {
         self.item.reference_list(self.fork.map.type_list.scope)
     }

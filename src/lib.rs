@@ -294,7 +294,7 @@ impl ReadBinaryDep for MacBinary<'_> {
     }
 }
 
-impl MacBinary<'_> {
+impl<'a> MacBinary<'a> {
     /// Returns the version of this MacBinary file.
     pub fn version(&self) -> Version {
         self.version
@@ -367,7 +367,7 @@ impl MacBinary<'_> {
     ///
     /// Note: Not all files have resource fork data. This method will return None if the resource
     /// fork is empty.
-    pub fn resource_fork(&self) -> Result<Option<ResourceFork<'_>>, ParseError> {
+    pub fn resource_fork(&self) -> Result<Option<ResourceFork<'a>>, ParseError> {
         if self.rsrc_fork.is_empty() {
             return Ok(None);
         }
