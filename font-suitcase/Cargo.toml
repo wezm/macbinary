@@ -1,0 +1,8 @@
+[package]
+name = "font-suitcase"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+macbinary = { path = "../" }
+read-binary = { path = "../read-binary" }
