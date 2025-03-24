@@ -1,4 +1,4 @@
-// #![deny(missing_docs)]
+#![deny(missing_docs)]
 
 //! Font suitcase parser
 //!
@@ -7,10 +7,6 @@
 //! ### Specifications:
 //!
 //! - [Inside Macintosh: Text](https://developer.apple.com/library/archive/documentation/mac/pdf/Text.pdf)
-//!
-//! #### Other references:
-//!
-//! - [Detecting MacBinary format](https://entropymine.wordpress.com/2019/02/13/detecting-macbinary-format/)
 
 use core::fmt;
 
@@ -34,19 +30,25 @@ const FONT: FourCC = FourCC(u32::from_be_bytes(*b"FONT"));
 const NFNT: FourCC = FourCC(u32::from_be_bytes(*b"NFNT"));
 const SFNT: FourCC = FourCC(u32::from_be_bytes(*b"sfnt"));
 
+/// A font suitcase
 pub struct Suitcase<'a> {
     data: ResourceFork<'a>,
 }
 
+/// Font suitcase error
 #[derive(Debug)]
 pub enum Error {
+    /// Error encounted parsing data.
     Parse(ParseError),
     /// Data is missing the specified resource.
     MissingResource(FourCC),
 }
 
+/// Represents a `sfnt` or `NFNT`/`FONT` in a font suitcase
 pub enum Font<'a> {
+    /// Font is a bitmap font in a `NFNT` or `FONT` resource.
     Bitmap(FontRec<'a>),
+    /// Font is an outline font (`sfnt`)
     Outline(&'a [u8]),
 }
 
@@ -57,33 +59,33 @@ pub enum Font<'a> {
 /// Reference: Inside Macintosh: Text pp 4-116
 pub struct FamRec<'a> {
     /// flags for family
-    flags: short,
+    pub flags: short,
     /// family ID number
-    fam_id: short,
+    pub fam_id: short,
     /// ASCII code of 1st character
-    first_char: short,
+    pub first_char: short,
     /// ASCII code of last character
-    last_char: short,
+    pub last_char: short,
     /// maximum ascent for 1 pt font
-    ascent: short,
+    pub ascent: short,
     /// maximum descent for 1 pt font
-    descent: short,
+    pub descent: short,
     /// maximum leading for 1 pt font
-    leading: short,
+    pub leading: short,
     /// maximum widMax for 1 pt font
-    wid_max: short,
+    pub wid_max: short,
     /// offset to width table
-    w_tab_off: long,
+    pub w_tab_off: long,
     /// offset to kerning table
-    kern_off: long,
+    pub kern_off: long,
     /// offset to style-mapping table
-    styl_off: long,
+    pub styl_off: long,
     /// style property info
-    property: [short; 9],
+    pub property: [short; 9],
     /// for international use
-    intl: [short; 2],
+    pub intl: [short; 2],
     /// version number
-    version: short,
+    pub version: short,
     font_assoc: FontAssoc<'a>,
 }
 
@@ -107,94 +109,121 @@ pub struct AsscEntry {
     pub font_style: short,
     /// font resource ID
     ///
-    /// This integer value specifies the resource ID of the related `sfnt`, `NFNT`, or `FONT` resource.
-    font_id: short,
+    /// This integer value specifies the resource ID of the related `sfnt`, `NFNT`, or `FONT`
+    /// resource.
+    pub font_id: short,
 }
 
 /// Bitmapped Font Record
 ///
-/// Describes the format of the bitmapped font (`NFNT`) resource (and, likewise, the `FONT` resource).
+/// Describes the format of the bitmapped font (`NFNT`) resource (and, likewise, the `FONT`
+/// resource).
 #[derive(Debug)]
 pub struct FontRec<'a> {
-    /// font type
-    font_type: FontType,
-    /// character code of first glyph
-    first_char: u16,
-    /// character code of last glyph
-    last_char: u16,
-    /// maximum glyph width
-    wid_max: short,
-    /// negative of maximum glyph kern
-    kern_max: short,
-    /// negative of descent
-    n_descent: short,
-    /// width of font rectangle in pixels
-    f_rect_width: u16,
+    /// Font type
+    pub font_type: FontType,
+    /// Character code of first glyph
+    ///
+    /// An integer value that specifies the ASCII character code of the first glyph in the font.
+    pub first_char: u16,
+    /// Character code of last glyph
+    ///
+    /// An integer value that specifies the ASCII character code of the last glyph in the font.
+    pub last_char: u16,
+    /// Maximum glyph width
+    ///
+    /// An integer value that specifies the maximum width of the widest glyph in the font, in
+    /// pixels.
+    pub wid_max: short,
+    /// Negative of maximum glyph kern
+    ///
+    /// An integer value that specifies the distance from the font rectangle’s glyph origin to the
+    /// left edge of the font rectangle, in pixels. If a glyph in the font kerns to the left, the
+    /// amount is represented as a negative number. If the glyph origin lies on the left edge of
+    /// the font rectangle, the value of the kernMax field is 0.
+    pub kern_max: short,
+    /// Negative of descent
+    ///
+    /// If this font has very large tables and this value is positive, this value is the high word
+    /// of the offset to the width/offset table. If this value is negative, it is the negative of
+    /// the descent and is not used by the Font Manager.
+    pub n_descent: short,
+    /// Width of font rectangle in pixels
+    ///
+    /// An integer value that specifies the width, in pixels, of the image created if all the
+    /// glyphs in the font were superimposed at their glyph origins.
+    pub f_rect_width: u16,
     /// height of font rectangle in pixels
-    f_rect_height: u16,
-    // /// Offset to width/offset table.
-    // ///
-    // /// An integer value that specifies the offset to the offset/width table from this point in
-    // /// the font record, in words. If this font has very large tables, this value is only the
-    // /// low word of the offset and the negated descent value is the high word.
-    // ow_t_loc: short,
-    /// ascent
-    ascent: short,
-    /// descent
-    descent: short,
-    /// leading
-    leading: short,
-    /// row width of bit image / 2
+    ///
+    /// An integer value that specifies the height, in pixels, of the image created if all the
+    /// glyphs in the font were superimposed at their glyph origins. This value equals the sum of
+    /// the maximum ascent and maximum descent measurements for the font.
+    pub f_rect_height: u16,
+    /// Maximum ascent
+    ///
+    /// An integer value that specifies the maximum ascent measurement for the entire font, in
+    /// pixels. The ascent is the distance from the glyph origin to the top of the font rectangle.
+    pub ascent: short,
+    /// Maximum descent
+    ///
+    /// An integer value that specifies the maximum descent measurement for the entire font, in
+    /// pixels. The descent is the distance from the glyph origin to the bottom of the font
+    /// rectangle.
+    pub descent: short,
+    /// Leading
+    ///
+    /// An integer value that specifies the leading measurement for the entire font, in pixels.
+    /// Leading is the distance from the descent line of one line of single-spaced text to the
+    /// ascent line of the next line of text.
+    pub leading: short,
+    /// Row width of bit image / 2
     ///
     /// An integer value that specifies the width of the bit image, in words.
-    row_words: u16,
+    pub row_words: u16,
     /// Bit image table.
     ///
-    /// The bit image of the glyphs in the font. The glyph images of every
-    /// defined glyph in the font are placed sequentially in order of increasing ASCII code.
-    /// The bit image is one pixel image with no undefined stretches that has a height given
-    /// by the value of the font rectangle element and a width given by the value of the bit
-    /// image row width element. The image is padded at the end with extra pixels to make
-    /// its length a multiple of 16.
-    bit_image_table: &'a [u8],
+    /// The bit image of the glyphs in the font. The glyph images of every defined glyph in the
+    /// font are placed sequentially in order of increasing ASCII code. The bit image is one pixel
+    /// image with no undefined stretches that has a height given by the value of the font
+    /// rectangle element and a width given by the value of the bit image row width element. The
+    /// image is padded at the end with extra pixels to make its length a multiple of 16.
+    pub bit_image_table: &'a [u8],
     /// Bitmap location table.
     ///
-    /// For every glyph in the font, this table contains a word that
-    /// specifies the bit offset to the location of the bitmap for that glyph in the bit image table.
-    /// If a glyph is missing from the font, its entry contains the same value for its location as
-    /// the entry for the next glyph. The missing glyph is the last glyph of the bit image for
-    /// that font. The last word of the table contains the offset to one bit beyond the end of the
-    /// bit image. You can determine the image width of each glyph from the bitmap location
-    /// table by subtracting the bit offset to that glyph from the bit offset to the next glyph in
-    /// the table.
-    bitmap_location_table: ReadArray<'a, U16Be>,
+    /// For every glyph in the font, this table contains a word that specifies the bit offset to
+    /// the location of the bitmap for that glyph in the bit image table. If a glyph is missing
+    /// from the font, its entry contains the same value for its location as the entry for the next
+    /// glyph. The missing glyph is the last glyph of the bit image for that font. The last word of
+    /// the table contains the offset to one bit beyond the end of the bit image. You can determine
+    /// the image width of each glyph from the bitmap location table by subtracting the bit offset
+    /// to that glyph from the bit offset to the next glyph in the table.
+    pub bitmap_location_table: ReadArray<'a, U16Be>,
     /// Width/offset table.
     ///
-    /// For every glyph in the font, this table contains a word with
-    /// the glyph offset in the high-order byte and the glyph’s width, in integer form, in the
-    /// low-order byte. The value of the offset, when added to the maximum kerning
-    /// value for the font, determines the horizontal distance from the glyph origin to the left
-    /// edge of the bit image of the glyph, in pixels. If this sum is negative, the glyph origin
-    /// is to the right of the glyph image’s left edge, meaning the glyph kerns to the left.
-    /// If the sum is positive, the origin is to the left of the image’s left edge. If the sum equals
-    /// zero, the glyph origin corresponds with the left edge of the bit image. Missing glyphs
-    /// are represented by a word value of –1. The last word of this table is also –1,
-    /// representing the end.
-    width_offset_table: ReadArray<'a, I16Be>,
+    /// For every glyph in the font, this table contains a word with the glyph offset in the
+    /// high-order byte and the glyph’s width, in integer form, in the low-order byte. The value of
+    /// the offset, when added to the maximum kerning value for the font, determines the horizontal
+    /// distance from the glyph origin to the left edge of the bit image of the glyph, in pixels.
+    /// If this sum is negative, the glyph origin is to the right of the glyph image’s left edge,
+    /// meaning the glyph kerns to the left. If the sum is positive, the origin is to the left of
+    /// the image’s left edge. If the sum equals zero, the glyph origin corresponds with the left
+    /// edge of the bit image. Missing glyphs are represented by a word value of –1. The last word
+    /// of this table is also –1, representing the end.
+    pub width_offset_table: ReadArray<'a, I16Be>,
     /// Glyph-width table.
     ///
-    /// For every glyph in the font, this table contains a word that specifies
-    /// the glyph’s fixed-point glyph width at the given point size and font style, in pixels.
-    /// The Font Manager gives precedence to the values in this table over those in the font
-    /// family glyph-width table. There is an unsigned integer in the high-order byte and a
-    /// fractional part in the low-order byte. This table is optional.
-    glyph_width_table: Option<ReadArray<'a, U16Be>>,
+    /// For every glyph in the font, this table contains a word that specifies the glyph’s
+    /// fixed-point glyph width at the given point size and font style, in pixels. The Font Manager
+    /// gives precedence to the values in this table over those in the font family glyph-width
+    /// table. There is an unsigned integer in the high-order byte and a fractional part in the
+    /// low-order byte. This table is optional.
+    pub glyph_width_table: Option<ReadArray<'a, U16Be>>,
 }
 
 bitflags! {
     /// Flags for a FontRec record
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    struct FontType: u16 {
+    pub struct FontType: u16 {
         /// This bit is set to 1 if the font resource contains an image height table.
         const HAS_HEIGHT = 0x1;
         /// This bit is set to 1 if the font resource contains a glyph-width table.
@@ -221,7 +250,33 @@ bitflags! {
     }
 }
 
+/// The region within the bit image a glyph occupies
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GlyphRegion {
+    /// The offset in bits into each row of the bit image where this glyph is located.
+    pub offset: u16,
+    /// The width of the glyph bitmap in bits.
+    pub width: u16,
+}
+
+/// Width and offset of a glyph for layout
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WidthOffset {
+    /// The width of the glyph in pixels.
+    pub width: u8,
+    /// The offset of the glyph from the glyph origin.
+    ///
+    /// > The value of the offset, when added to the maximum kerning value for the font, determines
+    /// > the horizontal distance from the glyph origin to the left edge of the bit image of the
+    /// > glyph, in pixels. If this sum is negative, the glyph origin is to the right of the glyph
+    /// > image’s left edge, meaning the glyph kerns to the left. If the sum is positive, the origin
+    /// > is to the left of the image’s left edge. If the sum equals zero, the glyph origin
+    /// > corresponds with the left edge of the bit image.
+    pub offset: i8,
+}
+
 impl<'a> Suitcase<'a> {
+    /// Open a font suitcase.
     pub fn new(data: &'a [u8]) -> Result<Suitcase<'a>, Error> {
         let data = ResourceFork::new(data)?;
         Ok(Suitcase { data })
@@ -273,6 +328,7 @@ impl<'a> Suitcase<'a> {
 }
 
 impl<'a> FamRec<'a> {
+    /// Iterate over the font entries in this font family
     pub fn fonts(&self) -> &ReadArray<'a, AsscEntry> {
         &self.font_assoc.entries
     }
@@ -347,15 +403,55 @@ impl ReadFrom for AsscEntry {
     }
 }
 
+impl FontRec<'_> {
+    /// Retrieve information about the region with the bit image that this glyph occupies.
+    ///
+    /// An offset and width are returned. The `offset` is the offset in bits into each row of the
+    /// bit image where this glyph is located. `width` is the width of the glyph bitmap in bits.
+    pub fn glyph_region(&self, glyph_id: u16) -> Option<GlyphRegion> {
+        let glyph_id = usize::from(glyph_id);
+        (glyph_id < self.bitmap_location_table.len().saturating_sub(1)).then(|| {
+            let offset = self.bitmap_location_table.get_item(glyph_id);
+            let next = self.bitmap_location_table.get_item(glyph_id + 1);
+            let width = next - offset;
+            GlyphRegion { offset, width }
+        })
+    }
+
+    /// Obtain the width and offset of the glyph for layout.
+    ///
+    /// > For every glyph in the font, this table contains a word with the glyph offset in the
+    /// > high-order byte and the glyph’s width, in integer form, in the low-order byte. The value of
+    /// > the offset, when added to the maximum kerning value for the font, determines the horizontal
+    /// > distance from the glyph origin to the left edge of the bit image of the glyph, in pixels.
+    /// > If this sum is negative, the glyph origin is to the right of the glyph image’s left edge,
+    /// > meaning the glyph kerns to the left. If the sum is positive, the origin is to the left of
+    /// > the image’s left edge. If the sum equals zero, the glyph origin corresponds with the left
+    /// > edge of the bit image.
+    pub fn width_offset(&self, glyph_id: u16) -> Option<WidthOffset> {
+        let glyph_id = usize::from(glyph_id);
+        let raw = (glyph_id < self.width_offset_table.len())
+            .then(|| self.width_offset_table.get_item(glyph_id))?;
+
+        // For every glyph in the font, this table contains a word with
+        // the glyph offset in the high-order byte and the glyph’s width, in integer form, in the
+        // low-order byte. Missing glyphs are represented by a word value of –1.
+        (raw != -1).then(|| {
+            let width = (raw & 0xFF).abs() as u8;
+            let offset = (raw >> 8) as i8;
+            WidthOffset { width, offset }
+        })
+    }
+}
+
 impl ReadBinary for FontRec<'_> {
     type HostType<'a> = FontRec<'a>;
 
-    // NOTE: words are 16-bits
     fn read<'a>(ctxt: &mut ReadCtxt<'a>) -> Result<Self::HostType<'a>, ParseError> {
         let font_type = ctxt.read_u16be().map(FontType::from_bits_retain)?;
         let first_char = ctxt.read_u16be()?;
         let last_char = ctxt.read_u16be()?;
-        let num_glyphs = usize::from(last_char - first_char + 2); // +1 to get glyph count, +1 for missing glyph at end
+        let num_glyphs = usize::from(last_char - first_char) + 2; // +1 to get glyph count, +1 for missing glyph at end
         let wid_max = ctxt.read_i16be()?;
         let kern_max = ctxt.read_i16be()?;
         let n_descent = ctxt.read_i16be()?;
@@ -363,11 +459,9 @@ impl ReadBinary for FontRec<'_> {
         let f_rect_height = ctxt.read_u16be()?;
         let ow_t_loc = usize::from(ctxt.read_u16be()?) * 2; // Value is in "words"
 
-        // The value of nDescent, when positive, is used as the high-order 16 bits in the 32-bit
-        // value that is used to store the offset of the width table from the beginning of the resource.
-
-        // The bitmap location table precedes the offset/width table and also contains
-        // a word per glyph + an entry at the end for "the offset to one bit beyond the end of the bit image"
+        // TODO: The value of nDescent, when positive, is used as the high-order 16 bits in the
+        // 32-bit value that is used to store the offset of the width table from the beginning of
+        // the resource.
         let offset_width_scope = ctxt.scope().offset_length(ow_t_loc, 2 * num_glyphs)?;
 
         let ascent = ctxt.read_i16be()?;
@@ -429,8 +523,97 @@ pub const fn word_align(len: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use super::*;
     use crate::test::read_fixture;
+
+    const PERCENT_REGIONS: &[GlyphRegion] = &[
+        // entry for sfnt
+        GlyphRegion {
+            offset: 0,
+            width: 0,
+        },
+        // 7pt
+        GlyphRegion {
+            offset: 32,
+            width: 5,
+        },
+        // 9pt
+        GlyphRegion {
+            offset: 34,
+            width: 5,
+        },
+        // 10pt
+        GlyphRegion {
+            offset: 34,
+            width: 5,
+        },
+        // 12pt
+        GlyphRegion {
+            offset: 44,
+            width: 7,
+        },
+        // 14pt
+        GlyphRegion {
+            offset: 55,
+            width: 8,
+        },
+        // 18pt
+        GlyphRegion {
+            offset: 71,
+            width: 10,
+        },
+        // 24pt
+        GlyphRegion {
+            offset: 98,
+            width: 14,
+        },
+    ];
+
+    // These expected values were obtained from ResEdit
+    const WIDTH_OFFSETS: &[WidthOffset] = &[
+        // entry for sfnt
+        WidthOffset {
+            offset: 0,
+            width: 0,
+        },
+        // 7pt
+        WidthOffset {
+            offset: 2,
+            width: 5,
+        },
+        // 9pt
+        WidthOffset {
+            offset: 1,
+            width: 6,
+        },
+        // 10pt
+        WidthOffset {
+            offset: 1,
+            width: 6,
+        },
+        // 12pt
+        WidthOffset {
+            offset: 1,
+            width: 7,
+        },
+        // 14pt
+        WidthOffset {
+            offset: 1,
+            width: 9,
+        },
+        // 18pt
+        WidthOffset {
+            offset: 2,
+            width: 12,
+        },
+        // 24pt
+        WidthOffset {
+            offset: 3,
+            width: 16,
+        },
+    ];
 
     #[test]
     fn pro_font() -> Result<(), Error> {
@@ -443,12 +626,31 @@ mod tests {
 
         let family = suitcase.font_family()?;
 
-        for entry in family.fonts() {
+        assert_eq!(family.fonts().len(), PERCENT_REGIONS.len());
+
+        for (entry, (expected_region, expected_wo)) in family.fonts().iter().zip(
+            PERCENT_REGIONS
+                .iter()
+                .copied()
+                .zip(WIDTH_OFFSETS.iter().copied()),
+        ) {
             let font = suitcase.font(entry)?;
             match font {
                 Font::Bitmap(font_rec) => {
-                    println!("got bitmap font for {}pt", entry.font_size);
-                    dbg!(font_rec);
+                    println!(
+                        "got bitmap font for {}pt {}x{} stride {}",
+                        entry.font_size,
+                        font_rec.f_rect_width,
+                        font_rec.f_rect_height,
+                        font_rec.row_words * 2 * 8
+                    );
+                    // dbg!(font_rec);
+                    let glyph_id = '%' as u16;
+                    let region = font_rec.glyph_region(glyph_id).unwrap();
+                    assert_eq!(region, expected_region);
+
+                    let wo = font_rec.width_offset(glyph_id).unwrap();
+                    assert_eq!(wo, expected_wo);
                 }
                 Font::Outline(_) => println!("got outline font"),
             }
